@@ -2,9 +2,9 @@ from sqlalchemy import Column, Integer, String, DateTime
 from database import Base
 import datetime
 
-# Ye hamari Table ka design (schema) hai
+
 class AnalysisHistory(Base):
-    __tablename__ = "analysis_history"  # Database mein is naam se table banegi
+    __tablename__ = "analysis_history"  
 
     id = Column(Integer, primary_key=True, index=True)
     original_text = Column(String, index=True)
