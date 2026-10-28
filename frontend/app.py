@@ -39,7 +39,7 @@ try:
 except Exception as e:
     st.warning("⚠️ Database connect nahi ho paya ya abhi setup nahi hai. Par AI Model chalega!")
 
-col1, col2 = st.columns([1, 1], gap="large")
+col1, col2 = st.columns([1, 1])
 
 with col1:
     st.subheader("📝 Analyze New Text")
@@ -72,7 +72,7 @@ with col1:
 st.markdown("---")
 st.subheader("📊 Analysis Dashboard")
 
-if st.button("🔄 Refresh Dashboard"):
+if st.button("Refresh Dashboard"):
     if db_connected and engine is not None:
         try:
             df = pd.read_sql("SELECT id, text, sentiment, confidence FROM analysis_history ORDER BY id DESC", engine)
@@ -82,22 +82,18 @@ if st.button("🔄 Refresh Dashboard"):
                     sentiment_counts = df['sentiment'].value_counts().reset_index()
                     sentiment_counts.columns = ['Sentiment', 'Count']
                     
-                    color_map = {
-                        "Positive 😄": "#2E7D32",
-                        "Negative 😡": "#D32F2F",
-                        "Neutral 😐": "#78909C"
-                    }
-                    
                     fig = px.pie(
                         sentiment_counts, 
                         values='Count', 
                         names='Sentiment', 
                         title="Overall Sentiment Distribution", 
                         color='Sentiment',
-                        color_discrete_map=color_map,
-                        hole=0.45
+                        color_discrete_map={
+                            'Positive 😄': 'green', 
+                            'Negative 😡': 'red', 
+                            'Neutral 😐': 'gray'
+                        }
                     )
-                    fig.update_layout(margin=dict(t=40, b=20, l=20, r=20))
                     st.plotly_chart(fig, use_container_width=True)
                 
                 st.write("**Recent Analysis History:**")
