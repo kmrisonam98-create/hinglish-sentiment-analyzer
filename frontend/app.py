@@ -81,9 +81,9 @@ with col2:
                 sentiment_counts.columns = ['Sentiment', 'Count']
                 
                 color_map = {
-                    "Positive 😄": "green",
-                    "Negative 😡": "red",
-                    "Neutral 😐": "gray"
+                    "Positive 😄": "#2E7D32",
+                    "Negative 😡": "#D32F2F",
+                    "Neutral 😐": "#78909C"
                 }
                 
                 fig = px.pie(
@@ -92,19 +92,26 @@ with col2:
                     values='Count',
                     color='Sentiment',
                     color_discrete_map=color_map,
-                    hole=0.1
+                    hole=0.45
                 )
+                fig.update_layout(margin=dict(t=20, b=20, l=20, r=20))
                 
                 st.plotly_chart(fig, use_container_width=True)
             else:
-                st.info("Pie chart ke liye abhi data nahi hai. Left side mein kuch analyze karein!")
+                st.info("Pie chart ke liye abhi data nahi hai.")
         except Exception as e:
             st.error("Chart load karne mein error aaya.")
     else:
         st.warning("Database connected nahi hai, isliye chart nahi dikh raha.")
 
 st.divider()
-st.subheader("📊 Analysis History")
+
+col_hist, col_btn = st.columns([8, 2])
+with col_hist:
+    st.subheader("📊 Analysis History")
+with col_btn:
+    st.write("")
+    st.button("🔄 Refresh Dashboard", use_container_width=True)
 
 if db_connected and engine is not None:
     try:
