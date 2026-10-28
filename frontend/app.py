@@ -1,61 +1,75 @@
 import streamlit as st
-import requests
 import pandas as pd
-import plotly.express as px
+from transformers import pipeline
+from sqlalchemy import create_engine, text
 
-API_ANALYZE_URL = "http://127.0.0.1:8000/analyze"
-API_HISTORY_URL = "http://127.0.0.1:8000/history"
 
-st.set_page_config(page_title="Hinglish Analyzer", layout="wide")
-st.title("🗣️ Hinglish Sentiment & Intent Analyzer")
+st.set_page_config(page_title="Hinglish Sentiment Analyzer", page_icon="🤖")
+st.title("🤖 AI Hinglish Sentiment & Intent Analyzer")
+st.write("Apna Hinglish text yahan type karein aur AI ka magic dekhein!")
 
-col1, col2 = st.columns([1, 1])
 
-with col1:
-    st.subheader("📝 Analyze New Text")
-    user_text = st.text_area("Hinglish Text Enter Karein:")
+@st.cache_resource
+def load_ai_model():
+    return pipeline("text-classification", model="cardiffnlp/twitter-xlm-roberta-base-sentiment", return_all_scores=False)
 
-    if st.button("Analyze Text"):
-        if user_text:
-            payload = {"text": user_text}
-            try:
-                response = requests.post(API_ANALYZE_URL, json=payload)
-                if response.status_code == 200:
-                    data = response.json()
-                    st.success("✅ Analysis Complete & Saved!")
-                    st.write(f"**Sentiment:** {data['analysis']['sentiment']}")
-                    st.write(f"**Intent:** {data['analysis']['intent']}")
-                else:
-                    st.error("Backend ne error diya!")
-            except requests.exceptions.ConnectionError:
-                st.error("Backend se connect nahi ho pa raha. Kya backend server on hai?")
+analyzer = load_ai_model()
 
-st.markdown("---")
-st.subheader("📊 Analysis Dashboard")
 
-if st.button("Refresh Dashboard"):
-    try:
-        res = requests.get(API_HISTORY_URL)
-        if res.status_code == 200:
-            history_data = res.json()["history"]
+@st.cache_resource
+def init_connection():
+    
+    db_url = st.secrets["DATABASE_URL"]
+    engine_conn = create_engine(db_url)
+    
+   
+    with engine_conn.connect() as conn:
+        conn.execute(text('''
+            CREATE TABLE IF NOT EXISTS analysis_history (
+                id SERIAL PRIMARY KEY,
+                text VARCHAR(500),
+                sentiment VARCHAR(50),
+                confidence FLOAT
+            )
+        '''))
+        conn.commit()
+    return engine_conn
+
+
+engine = None
+db_connected = False
+
+try:
+    engine = init_connection()
+    db_connected = True
+except Exception as e:
+    st.warning("⚠️ Database connect nahi ho paya ya abhi setup nahi hai. Par AI Model chalega!")
+
+
+user_input = st.text_area("Hinglish Text likhein:", placeholder="Bhai aaj toh mazza hi aa gaya!")
+
+if st.button("Analyze Sentiment"):
+    if user_input.strip() == "":
+        st.error("Bhai pehle kuch text toh likho!")
+    else:
+        with st.spinner("AI Soch raha hai... Model first time thoda time le sakta hai..."):
+           
+            result = analyzer(user_input)[0]
+            label_mapping = {"label_0": "Negative 😡", "label_1": "Neutral 😐", "label_2": "Positive 😄"}
+            sentiment = label_mapping.get(result["label"], result["label"])
+            confidence = round(result["score"] * 100, 2)
+
+           
+            st.success(f"**Sentiment:** {sentiment}")
+            st.info(f"**Confidence:** {confidence}%")
+
             
-            if len(history_data) > 0:
-                df = pd.DataFrame(history_data)
-                
-                with col2:
-                    sentiment_counts = df['sentiment'].value_counts().reset_index()
-                    sentiment_counts.columns = ['Sentiment', 'Count']
-                    
-                    fig = px.pie(sentiment_counts, values='Count', names='Sentiment', 
-                                 title="Overall Sentiment Distribution", 
-                                 color='Sentiment',
-                                 color_discrete_map={'Positive 😃':'green', 'Negative 😡':'red', 'Neutral 😐':'gray'})
-                    st.plotly_chart(fig, use_container_width=True)
-                
-                st.write("**Recent Analysis History:**")
-                df['created_at'] = pd.to_datetime(df['created_at']).dt.strftime("%Y-%m-%d %H:%M")
-                st.dataframe(df[['id', 'original_text', 'sentiment', 'intent', 'created_at']], use_container_width=True)
-            else:
-                st.info("Abhi tak koi data save nahi hua hai. Pehle kuch text analyze karein.")
-    except Exception as e:
-        st.error("Dashboard load karne mein error aaya. Kya backend on hai?")
+            if db_connected and engine is not None:
+                try:
+                    with engine.connect() as conn:
+                        conn.execute(text(
+                            "INSERT INTO analysis_history (text, sentiment, confidence) VALUES (:t, :s, :c)"
+                        ), {"t": user_input, "s": sentiment, "c": confidence})
+                        conn.commit()
+                except Exception as save_err:
+                    st.error("Database mein save nahi ho paya, par analysis complete hai.")
