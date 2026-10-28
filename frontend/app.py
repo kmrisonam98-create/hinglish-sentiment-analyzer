@@ -102,3 +102,16 @@ with col2:
             st.error("Chart load karne mein error aaya.")
     else:
         st.warning("Database connected nahi hai, isliye chart nahi dikh raha.")
+
+st.divider()
+st.subheader("📊 Analysis History")
+
+if db_connected and engine is not None:
+    try:
+        df_history = pd.read_sql("SELECT text, sentiment, confidence FROM analysis_history ORDER BY id DESC LIMIT 10", engine)
+        if not df_history.empty:
+            st.dataframe(df_history, use_container_width=True)
+        else:
+            st.info("Abhi tak koi data nahi hai. Upar kuch analyze karein!")
+    except Exception as e:
+        st.error("History load karne mein error aaya.")
