@@ -37,7 +37,7 @@ try:
     engine = init_connection()
     db_connected = True
 except Exception as e:
-    st.warning("⚠️ Database connect nahi ho paya ya abhi setup nahi hai. Par AI Model chalega!")
+    st.warning("Database connection error.")
 
 col1, col2 = st.columns([1, 1])
 
@@ -47,7 +47,7 @@ with col1:
 
     if st.button("Analyze Text"):
         if user_text.strip() == "":
-            st.error("Bhai pehle kuch text toh likho!")
+            st.error("Pehle kuch text toh likho!")
         else:
             with st.spinner("AI Soch raha hai..."):
                 result = analyzer(user_text)[0]
@@ -55,7 +55,7 @@ with col1:
                 sentiment = label_mapping.get(result["label"], result["label"])
                 confidence = round(result["score"] * 100, 2)
 
-                st.success("✅ Analysis Complete & Saved!")
+                st.success("Analysis Complete & Saved!")
                 st.write(f"**Sentiment:** {sentiment}")
                 st.write(f"**Confidence:** {confidence}%")
 
@@ -82,17 +82,19 @@ if st.button("Refresh Dashboard"):
                     sentiment_counts = df['sentiment'].value_counts().reset_index()
                     sentiment_counts.columns = ['Sentiment', 'Count']
                     
+                    color_map = {
+                        'Positive 😄': 'green', 
+                        'Negative 😡': 'red', 
+                        'Neutral 😐': 'gray'
+                    }
+                    
                     fig = px.pie(
                         sentiment_counts, 
                         values='Count', 
                         names='Sentiment', 
                         title="Overall Sentiment Distribution", 
                         color='Sentiment',
-                        color_discrete_map={
-                            'Positive 😄': 'green', 
-                            'Negative 😡': 'red', 
-                            'Neutral 😐': 'gray'
-                        }
+                        color_discrete_map=color_map
                     )
                     st.plotly_chart(fig, use_container_width=True)
                 
