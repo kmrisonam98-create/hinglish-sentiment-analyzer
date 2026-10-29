@@ -43,7 +43,7 @@ col1, col2 = st.columns([1, 1])
 
 with col1:
     st.subheader("📝 Analyze New Text")
-    user_text = st.text_area("Hinglish Text Enter Karein:", "Bhai ye project toh ekdum mast hai!")
+    user_text = st.text_area("Hinglish Text Enter Karein:", value="", placeholder="Apna text yahan likhein...")
 
     if st.button("Analyze Text"):
         if user_text.strip() == "":
