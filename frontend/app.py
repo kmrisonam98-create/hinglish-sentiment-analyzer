@@ -79,8 +79,20 @@ if st.button("Refresh Dashboard"):
             
             if not df.empty:
                 with col2:
+                    def fix_sentiment_name(val):
+                        val_str = str(val).lower()
+                        if 'positive' in val_str: return 'Positive 😄'
+                        if 'negative' in val_str: return 'Negative 😡'
+                        if 'neutral' in val_str: return 'Neutral 😐'
+                        return val
+                        
+                    df['sentiment'] = df['sentiment'].apply(fix_sentiment_name)
+                    
+                    all_categories = pd.DataFrame({'Sentiment': ['Positive 😄', 'Negative 😡', 'Neutral 😐']})
                     sentiment_counts = df['sentiment'].value_counts().reset_index()
                     sentiment_counts.columns = ['Sentiment', 'Count']
+                    
+                    sentiment_counts = pd.merge(all_categories, sentiment_counts, on='Sentiment', how='left').fillna(0)
                     
                     color_map = {
                         'Positive 😄': 'green', 
