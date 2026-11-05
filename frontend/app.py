@@ -25,9 +25,14 @@ def init_connection():
                 id SERIAL PRIMARY KEY,
                 text VARCHAR(500),
                 sentiment VARCHAR(50),
-                confidence FLOAT
+                confidence FLOAT,
+                username VARCHAR(50)
             )
         '''))
+        try:
+            conn.execute(text("ALTER TABLE analysis_history ADD COLUMN username VARCHAR(50)"))
+        except:
+            pass
         conn.execute(text('''
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -134,8 +139,8 @@ else:
                         try:
                             with engine.connect() as conn:
                                 conn.execute(text(
-                                    "INSERT INTO analysis_history (text, sentiment, confidence) VALUES (:t, :s, :c)"
-                                ), {"t": user_text, "s": sentiment, "c": confidence})
+                                    "INSERT INTO analysis_history (text, sentiment, confidence, username) VALUES (:t, :s, :c, :u)"
+                                ), {"t": user_text, "s": sentiment, "c": confidence, "u": st.session_state.username})
                                 conn.commit()
                         except Exception as save_err:
                             st.error("Database mein save nahi ho paya.")
@@ -146,7 +151,9 @@ else:
     if st.button("Refresh Dashboard"):
         if db_connected and engine is not None:
             try:
-                df = pd.read_sql("SELECT id, text, sentiment, confidence FROM analysis_history ORDER BY id DESC", engine)
+                with engine.connect() as conn:
+                    query = text("SELECT id, text, sentiment, confidence FROM analysis_history WHERE username = :u ORDER BY id DESC")
+                    df = pd.read_sql(query, conn, params={"u": st.session_state.username})
                 
                 if not df.empty:
                     with col2:
